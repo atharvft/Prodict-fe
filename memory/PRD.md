@@ -29,7 +29,7 @@
 - [x] Analytics Dashboard (bar chart, donut chart, burnout monitor)
 - [x] Goals with AI-generated roadmaps
 - [x] Settings (productive hours, nudge preferences, focus duration)
-- [x] Custom AURA logo (replaced Sparkles icon)
+- [x] Custom AURA logo updated to user-provided mind/lotus icon (2026-05-16)
 
 ### Testing Results
 - Backend: 90% (37/41 passed, 4 failures due to Gemini API rate limits)

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/f4b546d4-bdf7-4ed7-97de-31eac23af15e/images/c7bbb666e7eeb914e6cabb2348b2acbd32802cce347979bece178ad63d2c6967.png";
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_gemini-prd-impl/artifacts/2xebkno0_image.png";
 
 export default function AuraLogo({ size = 36, className = "" }) {
   return (
