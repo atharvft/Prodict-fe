@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, Trash2, Sparkles, User, AlertCircle, Lightbulb } from 'lucide-react';
+import { Send, Trash2, Sparkles, User, AlertCircle, Lightbulb, Heart } from 'lucide-react';
 import AuraLogo from '../components/AuraLogo';
+import OverwhelmMode from '../components/OverwhelmMode';
 
 const SUGGESTED_PROMPTS = [
   "What should I focus on today?",
@@ -17,6 +18,7 @@ export default function AdvisorChat() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showOverwhelm, setShowOverwhelm] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -73,7 +75,12 @@ export default function AdvisorChat() {
         <button onClick={clearHistory} data-testid="clear-chat-button" className="p-2 rounded-xl hover:bg-[#E8E5DF] text-[#575E56] hover:text-[#D46B6B] transition-colors" title="Clear history">
           <Trash2 className="w-5 h-5" />
         </button>
+        <button onClick={() => setShowOverwhelm(true)} data-testid="chat-overwhelm-button" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#8BA38A]/10 text-[#8BA38A] hover:bg-[#8BA38A]/20 transition-colors text-sm font-medium">
+          <Heart className="w-4 h-4" /> Overwhelmed?
+        </button>
       </div>
+
+      {showOverwhelm && <OverwhelmMode onClose={() => setShowOverwhelm(false)} />}
 
       <div className="flex-1 overflow-y-auto px-6 py-6" data-testid="chat-messages">
         {loading ? (

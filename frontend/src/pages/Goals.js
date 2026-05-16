@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { goalAPI } from '../services/api';
-import { Target, Plus, ChevronRight, Sparkles } from 'lucide-react';
+import { Target, Plus, ChevronRight, Sparkles, ListChecks, Loader2, ArrowRight } from 'lucide-react';
 
 export default function Goals() {
   const [goals, setGoals] = useState([]);
@@ -9,6 +9,9 @@ export default function Goals() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [expandedGoal, setExpandedGoal] = useState(null);
+  const [breakdown, setBreakdown] = useState(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(null);
+  const [creatingTasks, setCreatingTasks] = useState(null);
 
   useEffect(() => { loadGoals(); }, []);
 
@@ -34,6 +37,24 @@ export default function Goals() {
   const updateProgress = async (id, progress) => {
     try { await goalAPI.updateProgress(id, progress); loadGoals(); }
     catch (e) { console.error(e); }
+  };
+
+  const getBreakdown = async (goalId) => {
+    setBreakdownLoading(goalId);
+    try {
+      const { data } = await goalAPI.breakdown(goalId);
+      setBreakdown(data);
+    } catch (e) { console.error(e); }
+    finally { setBreakdownLoading(null); }
+  };
+
+  const createTasksFromGoal = async (goalId) => {
+    setCreatingTasks(goalId);
+    try {
+      await goalAPI.createTasks(goalId);
+      setBreakdown(null);
+    } catch (e) { console.error(e); }
+    finally { setCreatingTasks(null); }
   };
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#C27A63] border-t-transparent rounded-full animate-spin" /></div>;
@@ -67,6 +88,41 @@ export default function Goals() {
         </form>
       )}
 
+      {/* Goal Breakdown Modal */}
+      {breakdown && (
+        <div className="bg-[#F9F8F6] border-2 border-[#C27A63]/20 rounded-2xl p-6 mb-6 animate-fade-in-up" data-testid="goal-breakdown-section">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-['Manrope'] text-lg font-semibold text-[#1A1D1A] flex items-center gap-2">
+              <ListChecks className="w-5 h-5 text-[#C27A63]" /> Today's Tasks for: {breakdown.goal_title}
+            </h3>
+            <button onClick={() => setBreakdown(null)} className="text-sm text-[#575E56] hover:text-[#1A1D1A] px-3 py-1 rounded-lg hover:bg-[#E8E5DF]">Close</button>
+          </div>
+
+          {breakdown.ai_unavailable && (
+            <div className="mb-3 px-3 py-2 rounded-lg bg-[#E8B273]/10 border border-[#E8B273]/20 text-[#E8B273] text-xs font-['Figtree']">
+              AI is recharging. Showing tasks from your existing roadmap.
+            </div>
+          )}
+
+          <div className="space-y-2 mb-4">
+            {(breakdown.daily_tasks || []).map((task, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-[#F2F0EA] rounded-xl" data-testid={`breakdown-task-${i}`}>
+                <div className="w-7 h-7 rounded-full bg-[#C27A63] text-[#F9F8F6] flex items-center justify-center text-xs font-bold">{i + 1}</div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-[#1A1D1A] font-['Figtree']">{task.title}</p>
+                  <p className="text-xs text-[#575E56]">{task.effort} / {task.priority} priority</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button data-testid="create-tasks-from-breakdown" onClick={() => createTasksFromGoal(breakdown.goal_id)} disabled={creatingTasks === breakdown.goal_id}
+            className="w-full py-2.5 bg-[#C27A63] text-[#F9F8F6] rounded-xl hover:bg-[#A6634D] transition-colors font-medium text-sm shadow-sm disabled:opacity-50 flex items-center justify-center gap-2">
+            {creatingTasks === breakdown.goal_id ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Plus className="w-4 h-4" /> Add These to My Tasks</>}
+          </button>
+        </div>
+      )}
+
       {goals.length === 0 ? (
         <div className="text-center py-16">
           <Target className="w-12 h-12 text-[#C27A63]/40 mx-auto mb-4" />
@@ -82,9 +138,16 @@ export default function Goals() {
                   <h3 className="font-['Manrope'] text-xl font-semibold text-[#1A1D1A]">{g.title}</h3>
                   {g.deadline && <p className="text-sm text-[#575E56] mt-1">Deadline: {new Date(g.deadline).toLocaleDateString()}</p>}
                 </div>
-                <button onClick={() => setExpandedGoal(expandedGoal === g.id ? null : g.id)} className="p-2 hover:bg-[#E8E5DF] rounded-lg transition-colors">
-                  <ChevronRight className={`w-5 h-5 text-[#575E56] transition-transform ${expandedGoal === g.id ? 'rotate-90' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button data-testid={`goal-breakdown-${g.id}`} onClick={() => getBreakdown(g.id)} disabled={breakdownLoading === g.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C27A63]/10 text-[#C27A63] rounded-lg hover:bg-[#C27A63]/20 transition-colors text-sm font-medium disabled:opacity-50">
+                    {breakdownLoading === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ListChecks className="w-4 h-4" />}
+                    Today's Tasks
+                  </button>
+                  <button onClick={() => setExpandedGoal(expandedGoal === g.id ? null : g.id)} className="p-2 hover:bg-[#E8E5DF] rounded-lg transition-colors">
+                    <ChevronRight className={`w-5 h-5 text-[#575E56] transition-transform ${expandedGoal === g.id ? 'rotate-90' : ''}`} />
+                  </button>
+                </div>
               </div>
 
               <div className="mb-4">

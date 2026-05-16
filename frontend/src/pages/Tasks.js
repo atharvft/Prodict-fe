@@ -21,6 +21,7 @@ export default function Tasks() {
   const [prioritizing, setPrioritizing] = useState(false);
   const [rankings, setRankings] = useState([]);
   const [generating, setGenerating] = useState(false);
+  const [aiNotice, setAiNotice] = useState(null);
 
   useEffect(() => { loadTasks(); }, [filter]);
 
@@ -43,6 +44,10 @@ export default function Tasks() {
       const { data } = await taskAPI.brainDump(brainDumpText);
       setBrainDumpText('');
       setShowBrainDump(false);
+      if (data.ai_unavailable) {
+        setAiNotice('AI is recharging. Tasks were parsed using basic rules — you can edit them to fine-tune.');
+        setTimeout(() => setAiNotice(null), 8000);
+      }
       loadTasks();
     } catch (e) { console.error(e); }
     finally { setDumping(false); }
@@ -84,6 +89,12 @@ export default function Tasks() {
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto" data-testid="tasks-page">
+      {aiNotice && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-[#E8B273]/10 border border-[#E8B273]/20 text-[#E8B273] text-sm font-['Figtree'] animate-fade-in-up flex items-center justify-between" data-testid="ai-notice">
+          <span>{aiNotice}</span>
+          <button onClick={() => setAiNotice(null)} className="text-[#E8B273] hover:text-[#C27A63] ml-3 font-bold">x</button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-['Manrope'] text-3xl font-bold text-[#1A1D1A] tracking-tight">Tasks</h1>

@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { analyticsAPI } from '../services/api';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { BarChart3, Clock, Flame, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { BarChart3, Clock, Flame, AlertTriangle, Activity, FileText, Award, Loader2, TrendingUp } from 'lucide-react';
 
 const COLORS = ['#C27A63', '#8BA38A', '#E8B273', '#575E56', '#D46B6B', '#A6634D'];
+const gradeColors = { A: '#8BA38A', B: '#C27A63', C: '#E8B273', D: '#D46B6B' };
 
 export default function Analytics() {
   const [weekly, setWeekly] = useState(null);
   const [procrastination, setProcrastination] = useState(null);
   const [burnout, setBurnout] = useState(null);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => { loadAnalytics(); }, []);
 
@@ -23,16 +27,100 @@ export default function Analytics() {
     finally { setLoading(false); }
   };
 
+  const generateReport = async () => {
+    setLoadingReport(true);
+    try {
+      const { data } = await analyticsAPI.weeklyReport();
+      setReport(data);
+      setShowReport(true);
+    } catch (e) { console.error(e); }
+    finally { setLoadingReport(false); }
+  };
+
   const burnoutColor = (level) => ({ low: '#8BA38A', medium: '#E8B273', high: '#D46B6B' }[level] || '#8BA38A');
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#C27A63] border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto" data-testid="analytics-page">
-      <div className="mb-8">
-        <h1 className="font-['Manrope'] text-3xl font-bold text-[#1A1D1A] tracking-tight">Analytics</h1>
-        <p className="text-[#575E56] font-['Figtree'] mt-1">Track your productivity patterns and behavioral insights.</p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="font-['Manrope'] text-3xl font-bold text-[#1A1D1A] tracking-tight">Analytics</h1>
+          <p className="text-[#575E56] font-['Figtree'] mt-1">Track your productivity patterns and behavioral insights.</p>
+        </div>
+        <button data-testid="generate-report-button" onClick={generateReport} disabled={loadingReport}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#C27A63] text-[#F9F8F6] rounded-xl hover:bg-[#A6634D] transition-colors font-medium text-sm shadow-sm disabled:opacity-50">
+          {loadingReport ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><FileText className="w-4 h-4" /> Weekly Report</>}
+        </button>
       </div>
+
+      {/* Weekly Report Modal */}
+      {showReport && report && (
+        <div className="bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl p-6 mb-6 animate-fade-in-up" data-testid="weekly-report-section">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl font-['Manrope']"
+                style={{ backgroundColor: gradeColors[report.grade] || '#8BA38A' }}>
+                {report.grade}
+              </div>
+              <div>
+                <h3 className="font-['Manrope'] text-xl font-bold text-[#1A1D1A]">Weekly Productivity Report</h3>
+                <p className="text-xs text-[#575E56]">Last 7 days</p>
+              </div>
+            </div>
+            <button onClick={() => setShowReport(false)} className="text-sm text-[#575E56] hover:text-[#1A1D1A] px-3 py-1 rounded-lg hover:bg-[#E8E5DF]">Close</button>
+          </div>
+
+          {report.ai_unavailable && (
+            <div className="mb-4 px-3 py-2 rounded-lg bg-[#E8B273]/10 border border-[#E8B273]/20 text-[#E8B273] text-xs font-['Figtree']">
+              AI analysis is temporarily unavailable. Showing data-based summary.
+            </div>
+          )}
+
+          <p className="text-[#1A1D1A] font-['Figtree'] leading-relaxed mb-5 whitespace-pre-line" data-testid="report-narrative">{report.narrative}</p>
+
+          {report.highlights?.length > 0 && (
+            <div className="mb-5">
+              <p className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56] mb-2">Highlights</p>
+              <div className="flex flex-wrap gap-2">
+                {report.highlights.map((h, i) => (
+                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#8BA38A]/10 text-[#8BA38A] rounded-lg text-sm font-['Figtree']">
+                    <Award className="w-3.5 h-3.5" /> {h}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Focus Time Trend */}
+          {report.daily_focus?.length > 0 && (
+            <div className="mb-5">
+              <p className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56] mb-3">Focus Time Trend</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={report.daily_focus}>
+                  <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} tick={{ fill: '#575E56', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#575E56', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#F9F8F6', border: '1px solid rgba(45,55,43,0.1)', borderRadius: 12, fontFamily: 'Figtree' }} />
+                  <Line type="monotone" dataKey="minutes" stroke="#C27A63" strokeWidth={2.5} dot={{ fill: '#C27A63', r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {report.recommendations?.length > 0 && (
+            <div>
+              <p className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56] mb-2">Recommendations</p>
+              <div className="space-y-2">
+                {report.recommendations.map((r, i) => (
+                  <div key={i} className="flex items-start gap-2 p-3 bg-[#C27A63]/5 rounded-xl text-sm text-[#1A1D1A] font-['Figtree']">
+                    <TrendingUp className="w-4 h-4 text-[#C27A63] flex-shrink-0 mt-0.5" /> {r}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[

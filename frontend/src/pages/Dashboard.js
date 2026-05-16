@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { taskAPI, plannerAPI, analyticsAPI, focusAPI } from '../services/api';
-import { Clock, CheckCircle2, Flame, ArrowRight, Plus, Brain, AlertTriangle, Calendar } from 'lucide-react';
+import { Clock, CheckCircle2, Flame, ArrowRight, Plus, Brain, AlertTriangle, Calendar, Heart } from 'lucide-react';
 import AuraLogo from '../components/AuraLogo';
+import OverwhelmMode from '../components/OverwhelmMode';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const [quickTask, setQuickTask] = useState('');
   const [loading, setLoading] = useState(true);
   const [addingTask, setAddingTask] = useState(false);
+  const [showOverwhelm, setShowOverwhelm] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -62,12 +64,20 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto" data-testid="dashboard-page">
-      <div className="mb-8 animate-fade-in-up">
-        <h1 className="font-['Manrope'] text-3xl lg:text-4xl font-bold text-[#1A1D1A] tracking-tight">
-          {greeting()}, {user?.name?.split(' ')[0] || 'there'}
-        </h1>
-        <p className="text-[#575E56] font-['Figtree'] mt-1 text-lg">Here's your productivity overview for today.</p>
+      <div className="mb-8 animate-fade-in-up flex items-start justify-between">
+        <div>
+          <h1 className="font-['Manrope'] text-3xl lg:text-4xl font-bold text-[#1A1D1A] tracking-tight">
+            {greeting()}, {user?.name?.split(' ')[0] || 'there'}
+          </h1>
+          <p className="text-[#575E56] font-['Figtree'] mt-1 text-lg">Here's your productivity overview for today.</p>
+        </div>
+        <button data-testid="overwhelm-button" onClick={() => setShowOverwhelm(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#8BA38A]/10 border border-[#8BA38A]/20 text-[#8BA38A] rounded-xl hover:bg-[#8BA38A]/20 transition-colors font-medium text-sm flex-shrink-0">
+          <Heart className="w-4 h-4" /> I Feel Overwhelmed
+        </button>
       </div>
+
+      {showOverwhelm && <OverwhelmMode onClose={() => setShowOverwhelm(false)} />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[

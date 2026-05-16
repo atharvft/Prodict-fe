@@ -20,6 +20,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from google import genai
 
+import re
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -197,8 +199,60 @@ async def call_gemini(prompt: str, user_input: str) -> str:
         )
         return response.text
     except Exception as e:
-        logger.error(f"Gemini API error: {e}")
-        raise HTTPException(status_code=500, detail="AI service temporarily unavailable")
+        error_str = str(e)
+        logger.error(f"Gemini API error: {error_str}")
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+            return None  # Signal rate limit - let callers use fallback
+        return None  # Any Gemini failure returns None for graceful fallback
+
+def fallback_parse_tasks(text: str) -> list:
+    """Simple regex-based task parser when Gemini is unavailable."""
+    separators = re.split(r'[,;\n]+|(?:\band\b)', text)
+    tasks = []
+    for chunk in separators:
+        chunk = chunk.strip().strip('.-•')
+        if len(chunk) > 2:
+            priority = "medium"
+            task_type = "work"
+            effort = "1h"
+            lower = chunk.lower()
+            if any(w in lower for w in ['urgent', 'asap', 'deadline', 'important']):
+                priority = "high"
+            if any(w in lower for w in ['gym', 'run', 'exercise', 'workout', 'health']):
+                task_type = "health"
+                effort = "1h"
+            elif any(w in lower for w in ['buy', 'groceries', 'clean', 'cook', 'laundry']):
+                task_type = "personal"
+                effort = "30m"
+            elif any(w in lower for w in ['study', 'learn', 'read', 'course', 'practice']):
+                task_type = "learning"
+                effort = "2h"
+            elif any(w in lower for w in ['interview', 'resume', 'job', 'career', 'apply']):
+                task_type = "career"
+                effort = "2h"
+            tasks.append({"task": chunk.capitalize(), "type": task_type, "priority": priority, "effort": effort, "deadline": None})
+    return tasks if tasks else [{"task": text.strip().capitalize(), "type": "work", "priority": "medium", "effort": "1h", "deadline": None}]
+
+def fallback_prioritize(tasks: list) -> list:
+    """Priority-based sorting when Gemini is unavailable."""
+    order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    sorted_tasks = sorted(tasks, key=lambda t: order.get(t.get("priority", "medium"), 2))
+    return [{"task_id": t["id"], "rank": i + 1, "rationale": f"Ranked by priority level: {t.get('priority', 'medium')}"} for i, t in enumerate(sorted_tasks)]
+
+def fallback_schedule(tasks: list) -> dict:
+    """Generate a basic schedule when Gemini is unavailable."""
+    now = datetime.now(timezone.utc)
+    blocks = []
+    hour = max(now.hour + 1, 9)
+    for t in tasks[:6]:
+        if hour >= 18:
+            break
+        blocks.append({"start": f"{hour:02d}:00", "end": f"{hour+1:02d}:00", "type": "work", "task_id": t.get("id"), "label": t["title"]})
+        hour += 1
+        if len(blocks) % 2 == 0:
+            blocks.append({"start": f"{hour:02d}:00", "end": f"{hour:02d}:15", "type": "break", "task_id": None, "label": "Break"})
+            hour += 1
+    return {"date": now.strftime("%Y-%m-%d"), "blocks": blocks}
 
 def parse_json_response(text: str):
     cleaned = text.strip()
@@ -342,9 +396,11 @@ async def create_task(task: TaskCreate, user: dict = Depends(get_current_user)):
 @api_router.post("/tasks/brain-dump")
 async def brain_dump(input_data: BrainDumpInput, user: dict = Depends(get_current_user)):
     ai_response = await call_gemini(TASK_PARSE_PROMPT, input_data.text)
-    parsed = parse_json_response(ai_response)
+    parsed = parse_json_response(ai_response) if ai_response else None
+    ai_unavailable = False
     if not parsed or not isinstance(parsed, list):
-        raise HTTPException(status_code=422, detail="Could not parse tasks from input")
+        parsed = fallback_parse_tasks(input_data.text)
+        ai_unavailable = True
     created_tasks = []
     for item in parsed:
         task_doc = {
@@ -363,7 +419,7 @@ async def brain_dump(input_data: BrainDumpInput, user: dict = Depends(get_curren
         await db.tasks.insert_one({**task_doc, "_id": ObjectId()})
         created_tasks.append(task_doc)
     await db.behavior_logs.insert_one({"_id": ObjectId(), "user_id": user["_id"], "action": "brain_dump", "metadata": {"task_count": len(created_tasks)}, "created_at": datetime.now(timezone.utc).isoformat()})
-    return {"tasks": created_tasks, "count": len(created_tasks)}
+    return {"tasks": created_tasks, "count": len(created_tasks), "ai_unavailable": ai_unavailable}
 
 @api_router.put("/tasks/{task_id}")
 async def update_task(task_id: str, task_update: TaskUpdate, user: dict = Depends(get_current_user)):
@@ -395,10 +451,11 @@ async def prioritize_tasks(user: dict = Depends(get_current_user)):
         return {"rankings": [], "message": "No tasks to prioritize"}
     tasks_json = json.dumps([{"id": t["id"], "title": t["title"], "priority": t["priority"], "effort": t["effort"], "deadline": t.get("deadline"), "type": t["task_type"]} for t in tasks])
     ai_response = await call_gemini(PRIORITIZE_PROMPT, tasks_json)
-    parsed = parse_json_response(ai_response)
+    parsed = parse_json_response(ai_response) if ai_response else None
     if not parsed:
-        return {"rankings": [], "message": "Could not generate rankings"}
-    return {"rankings": parsed}
+        parsed = fallback_prioritize(tasks)
+        return {"rankings": parsed, "ai_unavailable": True}
+    return {"rankings": parsed, "ai_unavailable": False}
 
 # ─── Chat Routes ─────────────────────────────────────────────────
 @api_router.post("/chat")
@@ -414,6 +471,11 @@ User's current tasks: {json.dumps(tasks, default=str)}
 User name: {user.get('name', 'User')}"""
     full_prompt = CHAT_SYSTEM_PROMPT + "\n\nContext:\n" + context
     ai_response = await call_gemini(full_prompt, input_data.message)
+    if not ai_response:
+        ai_response = f"I'm taking a brief pause to recharge my AI capabilities. In the meantime, here's what I can see: you have {len(tasks)} active tasks. Focus on the highest priority one first, and take it one step at a time. I'll be back to full capacity shortly!"
+        ai_unavailable = True
+    else:
+        ai_unavailable = False
     conv_doc = {
         "id": str(uuid.uuid4()),
         "user_id": user["_id"],
@@ -423,7 +485,7 @@ User name: {user.get('name', 'User')}"""
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.conversations.insert_one({**conv_doc, "_id": ObjectId()})
-    return {"response": ai_response, "id": conv_doc["id"]}
+    return {"response": ai_response, "id": conv_doc["id"], "ai_unavailable": ai_unavailable}
 
 @api_router.get("/chat/history")
 async def get_chat_history(limit: int = 50, user: dict = Depends(get_current_user)):
@@ -446,11 +508,13 @@ async def generate_plan(user: dict = Depends(get_current_user)):
     tasks_json = json.dumps([{"id": t["id"], "title": t["title"], "priority": t["priority"], "effort": t["effort"], "type": t["task_type"]} for t in tasks])
     input_text = f"Current time: {now.strftime('%H:%M')}. Tasks: {tasks_json}"
     ai_response = await call_gemini(PLANNER_PROMPT, input_text)
-    parsed = parse_json_response(ai_response)
+    parsed = parse_json_response(ai_response) if ai_response else None
+    ai_unavailable = False
     if not parsed:
-        raise HTTPException(status_code=422, detail="Could not generate schedule")
+        parsed = fallback_schedule(tasks)
+        ai_unavailable = True
     today = now.strftime("%Y-%m-%d")
-    schedule_doc = {"id": str(uuid.uuid4()), "user_id": user["_id"], "date": today, "plan": parsed, "generated_at": datetime.now(timezone.utc).isoformat()}
+    schedule_doc = {"id": str(uuid.uuid4()), "user_id": user["_id"], "date": today, "plan": parsed, "generated_at": datetime.now(timezone.utc).isoformat(), "ai_unavailable": ai_unavailable}
     await db.schedules.update_one({"user_id": user["_id"], "date": today}, {"$set": schedule_doc}, upsert=True)
     return schedule_doc
 
@@ -646,6 +710,143 @@ async def get_pending_nudges(user: dict = Depends(get_current_user)):
 async def mark_nudge_delivered(nudge_id: str, user: dict = Depends(get_current_user)):
     await db.nudges.update_one({"id": nudge_id, "user_id": user["_id"]}, {"$set": {"delivered": True, "delivered_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": "Nudge marked as delivered"}
+
+# ─── V2: Emotional Overwhelm Mode ────────────────────────────────
+OVERWHELM_PROMPT = """You are AURA in calm mode. The user is feeling overwhelmed.
+Given their task list, pick ONLY the 3 most important tasks for today.
+Return valid JSON: { "message": string (2-3 calming sentences), "focus_tasks": [{"title": string, "why": string}] }
+Be warm, empathetic, and reassuring. Simplify everything."""
+
+@api_router.post("/overwhelm")
+async def overwhelm_mode(user: dict = Depends(get_current_user)):
+    tasks = await db.tasks.find({"user_id": user["_id"], "status": {"$in": ["pending", "in_progress"]}}, {"_id": 0}).to_list(20)
+    await db.behavior_logs.insert_one({"_id": ObjectId(), "user_id": user["_id"], "action": "overwhelm_triggered", "metadata": {}, "created_at": datetime.now(timezone.utc).isoformat()})
+    if not tasks:
+        return {"message": "You have a clean slate today. Take a deep breath. There's nothing urgent. Use this space to rest or start something small that brings you joy.", "focus_tasks": [], "ai_unavailable": False}
+    tasks_json = json.dumps([{"title": t["title"], "priority": t["priority"], "effort": t["effort"], "type": t["task_type"]} for t in tasks[:10]])
+    ai_response = await call_gemini(OVERWHELM_PROMPT, f"User name: {user.get('name', 'friend')}. Tasks: {tasks_json}")
+    parsed = parse_json_response(ai_response) if ai_response else None
+    if parsed and isinstance(parsed, dict):
+        return {**parsed, "ai_unavailable": False}
+    # Fallback: pick top 3 by priority
+    priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    sorted_tasks = sorted(tasks, key=lambda t: priority_order.get(t.get("priority", "medium"), 2))[:3]
+    return {
+        "message": f"Hey {user.get('name', 'there').split(' ')[0]}, take a breath. You don't need to do everything today. Here are just 3 things to focus on. Everything else can wait.",
+        "focus_tasks": [{"title": t["title"], "why": f"This is your {t.get('priority', 'medium')} priority {t.get('task_type', 'work')} task"} for t in sorted_tasks],
+        "ai_unavailable": True
+    }
+
+# ─── V2: Weekly Productivity Report ─────────────────────────────
+WEEKLY_REPORT_PROMPT = """You are AURA generating a weekly productivity report.
+Given the user's weekly data (tasks completed, focus time, procrastination patterns, streaks),
+write a personalized 3-4 paragraph narrative report. Be encouraging, specific, and give 2-3 actionable recommendations.
+Return valid JSON: { "narrative": string, "highlights": [string], "recommendations": [string], "grade": "A|B|C|D" }"""
+
+@api_router.get("/analytics/weekly-report")
+async def weekly_report(user: dict = Depends(get_current_user)):
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    tasks_done = await db.tasks.find({"user_id": user["_id"], "status": "done", "updated_at": {"$gte": week_ago}}, {"_id": 0}).to_list(200)
+    all_tasks = await db.tasks.find({"user_id": user["_id"], "status": {"$ne": "deleted"}}, {"_id": 0}).to_list(200)
+    focus_sessions = await db.focus_sessions.find({"user_id": user["_id"], "started_at": {"$gte": week_ago}}, {"_id": 0}).to_list(200)
+    postponed = await db.tasks.find({"user_id": user["_id"], "postpone_count": {"$gt": 0}, "status": {"$ne": "deleted"}}, {"_id": 0}).to_list(50)
+    total_focus = sum(s.get("actual_min", 0) for s in focus_sessions)
+    completed_sessions = len([s for s in focus_sessions if s.get("completed")])
+    completion_rate = len(tasks_done) / max(len(all_tasks), 1) * 100
+    # Daily breakdown
+    daily_data = {}
+    for i in range(7):
+        day = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
+        daily_data[day] = 0
+    for t in tasks_done:
+        day = t.get("updated_at", "")[:10]
+        if day in daily_data:
+            daily_data[day] += 1
+    # Focus time per day
+    daily_focus = {}
+    for s in focus_sessions:
+        day = s.get("started_at", "")[:10]
+        daily_focus[day] = daily_focus.get(day, 0) + s.get("actual_min", 0)
+    stats = {
+        "tasks_completed": len(tasks_done), "total_tasks": len(all_tasks),
+        "total_focus_minutes": total_focus, "completed_sessions": completed_sessions,
+        "total_sessions": len(focus_sessions), "postponed_count": len(postponed),
+        "completion_rate": round(completion_rate, 1), "user_name": user.get("name", "User")
+    }
+    ai_response = await call_gemini(WEEKLY_REPORT_PROMPT, json.dumps(stats))
+    parsed = parse_json_response(ai_response) if ai_response else None
+    if not parsed or not isinstance(parsed, dict):
+        # Fallback narrative
+        grade = "A" if completion_rate > 70 else "B" if completion_rate > 50 else "C" if completion_rate > 30 else "D"
+        parsed = {
+            "narrative": f"This week you completed {len(tasks_done)} tasks with {total_focus} minutes of focused work across {len(focus_sessions)} sessions. Your completion rate is {completion_rate:.0f}%. {'Great momentum! Keep it up.' if completion_rate > 50 else 'There is room to improve. Try breaking tasks into smaller pieces.'}",
+            "highlights": [f"{len(tasks_done)} tasks completed", f"{total_focus} minutes of focus time", f"{completed_sessions}/{len(focus_sessions)} focus sessions completed"],
+            "recommendations": ["Start each day by reviewing your top 3 priorities", "Use the Pomodoro timer for deep work blocks", "Break large tasks into smaller subtasks"],
+            "grade": grade
+        }
+        ai_unavailable = True
+    else:
+        ai_unavailable = False
+    return {
+        **parsed, "stats": stats, "ai_unavailable": ai_unavailable,
+        "daily_completions": [{"date": k, "count": v} for k, v in sorted(daily_data.items())],
+        "daily_focus": [{"date": k, "minutes": v} for k, v in sorted(daily_focus.items())]
+    }
+
+# ─── V2: Goal Breakdown (daily tasks from goal) ─────────────────
+GOAL_BREAKDOWN_PROMPT = """You are AURA, a goal breakdown specialist.
+Given a goal with its roadmap, generate 3-5 specific actionable tasks the user should do TODAY to make progress.
+Return ONLY valid JSON array: [{"title": string, "effort": string, "priority": string}]
+Make tasks concrete, small (under 2 hours each), and immediately actionable."""
+
+@api_router.post("/goals/{goal_id}/breakdown")
+async def goal_breakdown(goal_id: str, user: dict = Depends(get_current_user)):
+    goal = await db.goals.find_one({"id": goal_id, "user_id": user["_id"]}, {"_id": 0})
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    input_text = f"Goal: {goal['title']}. Progress: {goal.get('progress', 0)}%. Roadmap: {json.dumps(goal.get('roadmap', []))}"
+    ai_response = await call_gemini(GOAL_BREAKDOWN_PROMPT, input_text)
+    parsed = parse_json_response(ai_response) if ai_response else None
+    ai_unavailable = False
+    if not parsed or not isinstance(parsed, list):
+        # Fallback: extract tasks from roadmap phases
+        roadmap = goal.get("roadmap", [])
+        suggested = []
+        for phase in roadmap:
+            for task_title in phase.get("tasks", [])[:2]:
+                suggested.append({"title": task_title, "effort": "1h", "priority": "medium"})
+                if len(suggested) >= 3:
+                    break
+            if len(suggested) >= 3:
+                break
+        if not suggested:
+            suggested = [{"title": f"Work on: {goal['title']}", "effort": "1h", "priority": "medium"}]
+        parsed = suggested
+        ai_unavailable = True
+    return {"goal_id": goal_id, "goal_title": goal["title"], "daily_tasks": parsed, "ai_unavailable": ai_unavailable}
+
+@api_router.post("/goals/{goal_id}/create-tasks")
+async def create_goal_tasks(goal_id: str, user: dict = Depends(get_current_user)):
+    """Create actual tasks from a goal breakdown."""
+    goal = await db.goals.find_one({"id": goal_id, "user_id": user["_id"]}, {"_id": 0})
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    breakdown_result = await goal_breakdown(goal_id, user)
+    created = []
+    for item in breakdown_result.get("daily_tasks", []):
+        task_doc = {
+            "id": str(uuid.uuid4()), "user_id": user["_id"],
+            "title": item.get("title", "Goal task"),
+            "task_type": "learning", "priority": item.get("priority", "medium"),
+            "effort": item.get("effort", "1h"), "deadline": None,
+            "status": "pending", "postpone_count": 0,
+            "goal_id": goal_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.tasks.insert_one({**task_doc, "_id": ObjectId()})
+        created.append(task_doc)
+    return {"tasks": created, "count": len(created)}
 
 # ─── Health Check ────────────────────────────────────────────────
 @api_router.get("/")

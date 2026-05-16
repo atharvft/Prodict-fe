@@ -63,6 +63,7 @@ export const focusAPI = {
 
 export const analyticsAPI = {
   weekly: () => api.get('/analytics/weekly'),
+  weeklyReport: () => api.get('/analytics/weekly-report'),
   procrastination: () => api.get('/analytics/procrastination'),
   burnout: () => api.get('/analytics/burnout'),
 };
@@ -71,6 +72,12 @@ export const goalAPI = {
   create: (data) => api.post('/goals', data),
   getAll: () => api.get('/goals'),
   updateProgress: (id, progress) => api.put(`/goals/${id}/progress`, { progress }),
+  breakdown: (id) => api.post(`/goals/${id}/breakdown`),
+  createTasks: (id) => api.post(`/goals/${id}/create-tasks`),
+};
+
+export const overwhelmAPI = {
+  trigger: () => api.post('/overwhelm'),
 };
 
 export const settingsAPI = {
