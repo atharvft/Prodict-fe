@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import AuraLogo from '../components/AuraLogo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -33,8 +34,8 @@ export default function Login() {
         style={{ backgroundImage: `url(https://static.prod-images.emergentagent.com/jobs/f4b546d4-bdf7-4ed7-97de-31eac23af15e/images/bd22df81db9bbdca3a13fdce78c799e5e56f66f79489be5fc69ec71f37a7e3c2.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="absolute inset-0 bg-[#1A1D1A]/40 backdrop-blur-sm" />
         <div className="relative z-10 text-center p-12">
-          <div className="w-16 h-16 rounded-2xl bg-[#C27A63] flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-8 h-8 text-[#F9F8F6]" />
+          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 overflow-hidden">
+            <AuraLogo size={64} />
           </div>
           <h1 className="font-['Manrope'] text-4xl font-bold text-[#F9F8F6] tracking-tight mb-3">AURA</h1>
           <p className="text-[#F9F8F6]/80 font-['Figtree'] text-lg max-w-sm">Your autonomous AI advisor that thinks, plans, and acts for you.</p>
@@ -44,8 +45,8 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8 bg-[#F9F8F6]">
         <div className="w-full max-w-md animate-fade-in-up">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-[#C27A63] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-[#F9F8F6]" />
+            <div className="w-10 h-10 rounded-xl bg-[#F2F0EA] flex items-center justify-center overflow-hidden">
+              <AuraLogo size={36} />
             </div>
             <span className="font-['Manrope'] text-2xl font-bold text-[#1A1D1A]">AURA</span>
           </div>

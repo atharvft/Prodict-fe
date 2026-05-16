@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Send, Trash2, Sparkles, User, AlertCircle, Lightbulb } from 'lucide-react';
+import AuraLogo from '../components/AuraLogo';
 
 const SUGGESTED_PROMPTS = [
   "What should I focus on today?",
@@ -61,8 +62,8 @@ export default function AdvisorChat() {
     <div className="flex flex-col h-full" data-testid="advisor-chat-page">
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#2D372B]/8 backdrop-blur-xl bg-[#F9F8F6]/70">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#C27A63] flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-[#F9F8F6]" />
+          <div className="w-10 h-10 rounded-xl bg-[#F2F0EA] flex items-center justify-center overflow-hidden">
+            <AuraLogo size={36} />
           </div>
           <div>
             <h2 className="font-['Manrope'] text-lg font-bold text-[#1A1D1A]">AURA Advisor</h2>
@@ -79,8 +80,8 @@ export default function AdvisorChat() {
           <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#C27A63] border-t-transparent rounded-full animate-spin" /></div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto">
-            <div className="w-16 h-16 rounded-2xl bg-[#C27A63]/10 flex items-center justify-center mb-6">
-              <Sparkles className="w-8 h-8 text-[#C27A63]" />
+            <div className="w-16 h-16 rounded-2xl bg-[#F2F0EA] flex items-center justify-center mb-6 overflow-hidden">
+              <AuraLogo size={48} />
             </div>
             <h3 className="font-['Manrope'] text-2xl font-bold text-[#1A1D1A] mb-2">Hi {user?.name?.split(' ')[0]}!</h3>
             <p className="text-[#575E56] font-['Figtree'] mb-8">I'm your AI advisor. Ask me about productivity, priorities, decisions, or anything that's on your mind.</p>
@@ -103,8 +104,8 @@ export default function AdvisorChat() {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex gap-3 animate-fade-in-up ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-lg bg-[#C27A63] flex items-center justify-center flex-shrink-0 mt-1">
-                    <Sparkles className="w-4 h-4 text-[#F9F8F6]" />
+                  <div className="w-8 h-8 rounded-lg bg-[#F2F0EA] flex items-center justify-center flex-shrink-0 mt-1 overflow-hidden">
+                    <AuraLogo size={28} />
                   </div>
                 )}
                 <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed font-['Figtree'] ${
@@ -123,8 +124,8 @@ export default function AdvisorChat() {
             ))}
             {sending && (
               <div className="flex gap-3 animate-fade-in-up">
-                <div className="w-8 h-8 rounded-lg bg-[#C27A63] flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-[#F9F8F6]" />
+                <div className="w-8 h-8 rounded-lg bg-[#F2F0EA] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <AuraLogo size={28} />
                 </div>
                 <div className="bg-[#F2F0EA] px-4 py-3 rounded-2xl rounded-bl-md border border-[#2D372B]/5">
                   <div className="flex gap-1.5"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></div>

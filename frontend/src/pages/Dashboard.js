@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { taskAPI, plannerAPI, analyticsAPI, focusAPI } from '../services/api';
-import { Sparkles, Clock, CheckCircle2, Flame, ArrowRight, Plus, Brain, AlertTriangle, Calendar } from 'lucide-react';
+import { Clock, CheckCircle2, Flame, ArrowRight, Plus, Brain, AlertTriangle, Calendar } from 'lucide-react';
+import AuraLogo from '../components/AuraLogo';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -138,7 +139,9 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <Link to="/chat" className="block bg-gradient-to-br from-[#C27A63] to-[#A6634D] rounded-2xl p-6 text-[#F9F8F6] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 animate-fade-in-up" data-testid="chat-advisor-card">
-            <Sparkles className="w-8 h-8 mb-3 opacity-90" />
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-3 overflow-hidden">
+              <AuraLogo size={32} />
+            </div>
             <h3 className="font-['Manrope'] text-xl font-bold mb-2">AI Advisor</h3>
             <p className="text-[#F9F8F6]/80 text-sm font-['Figtree']">Ask AURA for help with priorities, decisions, or just vent.</p>
             <div className="mt-4 flex items-center gap-1 text-sm font-medium">Start chatting <ArrowRight className="w-4 h-4" /></div>

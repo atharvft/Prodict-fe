@@ -3,8 +3,9 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, MessageCircle, ListTodo, Timer, BarChart3,
-  Target, Settings, LogOut, ChevronLeft, ChevronRight, Sparkles
+  Target, Settings, LogOut, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import AuraLogo from './AuraLogo';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,8 +28,8 @@ export default function Sidebar() {
       className={`flex flex-col h-screen border-r border-[#2D372B]/10 bg-[#F2F0EA] transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-[240px]'}`}
     >
       <div className="flex items-center gap-3 px-4 h-16 border-b border-[#2D372B]/8">
-        <div className="w-9 h-9 rounded-xl bg-[#C27A63] flex items-center justify-center flex-shrink-0">
-          <Sparkles className="w-5 h-5 text-[#F9F8F6]" />
+        <div className="w-9 h-9 rounded-xl bg-[#F2F0EA] flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <AuraLogo size={32} />
         </div>
         {!collapsed && (
           <span className="font-['Manrope'] text-xl font-bold text-[#1A1D1A] tracking-tight">AURA</span>
