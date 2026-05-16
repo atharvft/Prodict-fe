@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Sparkles, Eye, EyeOff } from 'lucide-react';
+
+export default function Signup() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    setLoading(true);
+    try {
+      await register(name, email, password);
+      navigate('/');
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(e => e.msg).join(' ') : 'Registration failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex" data-testid="signup-page">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center"
+        style={{ backgroundImage: `url(https://static.prod-images.emergentagent.com/jobs/f4b546d4-bdf7-4ed7-97de-31eac23af15e/images/bd22df81db9bbdca3a13fdce78c799e5e56f66f79489be5fc69ec71f37a7e3c2.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0 bg-[#1A1D1A]/40 backdrop-blur-sm" />
+        <div className="relative z-10 text-center p-12">
+          <div className="w-16 h-16 rounded-2xl bg-[#C27A63] flex items-center justify-center mx-auto mb-6">
+            <Sparkles className="w-8 h-8 text-[#F9F8F6]" />
+          </div>
+          <h1 className="font-['Manrope'] text-4xl font-bold text-[#F9F8F6] tracking-tight mb-3">AURA</h1>
+          <p className="text-[#F9F8F6]/80 font-['Figtree'] text-lg max-w-sm">Start your journey to intelligent, stress-free productivity.</p>
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-8 bg-[#F9F8F6]">
+        <div className="w-full max-w-md animate-fade-in-up">
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-[#C27A63] flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-[#F9F8F6]" />
+            </div>
+            <span className="font-['Manrope'] text-2xl font-bold text-[#1A1D1A]">AURA</span>
+          </div>
+
+          <h2 className="font-['Manrope'] text-3xl font-bold text-[#1A1D1A] tracking-tight mb-2">Create your account</h2>
+          <p className="text-[#575E56] mb-8 font-['Figtree']">Let AURA become your personal productivity advisor.</p>
+
+          {error && (
+            <div data-testid="signup-error" className="mb-4 p-3 rounded-xl bg-[#D46B6B]/10 border border-[#D46B6B]/20 text-[#D46B6B] text-sm">{error}</div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs tracking-[0.2em] uppercase font-semibold text-[#575E56] mb-2">Full Name</label>
+              <input
+                data-testid="signup-name-input"
+                type="text" value={name} onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-3 bg-[#F2F0EA] border border-[#2D372B]/10 rounded-xl focus:bg-[#F9F8F6] focus:border-[#C27A63] focus:ring-2 focus:ring-[#C27A63]/20 outline-none transition-all text-[#1A1D1A] font-['Figtree']"
+                placeholder="Your name" required
+              />
+            </div>
+            <div>
+              <label className="block text-xs tracking-[0.2em] uppercase font-semibold text-[#575E56] mb-2">Email</label>
+              <input
+                data-testid="signup-email-input"
+                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-[#F2F0EA] border border-[#2D372B]/10 rounded-xl focus:bg-[#F9F8F6] focus:border-[#C27A63] focus:ring-2 focus:ring-[#C27A63]/20 outline-none transition-all text-[#1A1D1A] font-['Figtree']"
+                placeholder="you@example.com" required
+              />
+            </div>
+            <div>
+              <label className="block text-xs tracking-[0.2em] uppercase font-semibold text-[#575E56] mb-2">Password</label>
+              <div className="relative">
+                <input
+                  data-testid="signup-password-input"
+                  type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 bg-[#F2F0EA] border border-[#2D372B]/10 rounded-xl focus:bg-[#F9F8F6] focus:border-[#C27A63] focus:ring-2 focus:ring-[#C27A63]/20 outline-none transition-all text-[#1A1D1A] font-['Figtree']"
+                  placeholder="Min. 6 characters" required
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#575E56] hover:text-[#C27A63]">
+                  {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+            <button
+              data-testid="signup-submit-button"
+              type="submit" disabled={loading}
+              className="w-full py-3 px-4 bg-[#C27A63] text-[#F9F8F6] rounded-xl hover:bg-[#A6634D] transition-colors font-['Figtree'] font-medium shadow-sm disabled:opacity-50"
+            >
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-[#575E56] text-sm font-['Figtree']">
+            Already have an account?{' '}
+            <Link to="/login" className="text-[#C27A63] hover:text-[#A6634D] font-medium" data-testid="login-link">Sign in</Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

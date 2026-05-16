@@ -1,0 +1,152 @@
+import React, { useState, useEffect } from 'react';
+import { analyticsAPI } from '../services/api';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { BarChart3, Clock, Flame, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
+
+const COLORS = ['#C27A63', '#8BA38A', '#E8B273', '#575E56', '#D46B6B', '#A6634D'];
+
+export default function Analytics() {
+  const [weekly, setWeekly] = useState(null);
+  const [procrastination, setProcrastination] = useState(null);
+  const [burnout, setBurnout] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { loadAnalytics(); }, []);
+
+  const loadAnalytics = async () => {
+    try {
+      const [w, p, b] = await Promise.allSettled([analyticsAPI.weekly(), analyticsAPI.procrastination(), analyticsAPI.burnout()]);
+      if (w.status === 'fulfilled') setWeekly(w.value.data);
+      if (p.status === 'fulfilled') setProcrastination(p.value.data);
+      if (b.status === 'fulfilled') setBurnout(b.value.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const burnoutColor = (level) => ({ low: '#8BA38A', medium: '#E8B273', high: '#D46B6B' }[level] || '#8BA38A');
+
+  if (loading) return <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#C27A63] border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto" data-testid="analytics-page">
+      <div className="mb-8">
+        <h1 className="font-['Manrope'] text-3xl font-bold text-[#1A1D1A] tracking-tight">Analytics</h1>
+        <p className="text-[#575E56] font-['Figtree'] mt-1">Track your productivity patterns and behavioral insights.</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Tasks Completed', value: weekly?.tasks_completed || 0, icon: BarChart3, color: '#8BA38A' },
+          { label: 'Focus Time', value: `${weekly?.total_focus_minutes || 0}m`, icon: Clock, color: '#C27A63' },
+          { label: 'Streak', value: `${weekly?.streak_days || 0} days`, icon: Flame, color: '#E8B273' },
+          { label: 'Burnout Risk', value: burnout?.risk_level || 'low', icon: Activity, color: burnoutColor(burnout?.risk_level) },
+        ].map((s, i) => (
+          <div key={s.label} className={`bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl p-5 animate-fade-in-up stagger-${i+1}`} data-testid={`analytics-stat-${s.label.toLowerCase().replace(/\s/g, '-')}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56]">{s.label}</span>
+              <s.icon className="w-5 h-5" style={{ color: s.color }} />
+            </div>
+            <p className="font-['Manrope'] text-2xl font-bold text-[#1A1D1A] capitalize">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl p-6" data-testid="daily-completions-chart">
+          <h3 className="font-['Manrope'] text-lg font-semibold text-[#1A1D1A] mb-4">Daily Task Completions</h3>
+          {weekly?.daily_completions?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={weekly.daily_completions}>
+                <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} tick={{ fill: '#575E56', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#575E56', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: '#F9F8F6', border: '1px solid rgba(45,55,43,0.1)', borderRadius: 12, fontFamily: 'Figtree' }} />
+                <Bar dataKey="count" fill="#C27A63" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-[#575E56] text-center py-12 font-['Figtree']">Complete some tasks to see your progress!</p>}
+        </div>
+
+        <div className="bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl p-6" data-testid="task-type-chart">
+          <h3 className="font-['Manrope'] text-lg font-semibold text-[#1A1D1A] mb-4">Task Type Breakdown</h3>
+          {weekly?.task_type_breakdown?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie data={weekly.task_type_breakdown} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={4}>
+                  {weekly.task_type_breakdown.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: '#F9F8F6', border: '1px solid rgba(45,55,43,0.1)', borderRadius: 12, fontFamily: 'Figtree' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <p className="text-[#575E56] text-center py-12 font-['Figtree']">Add tasks to see breakdown!</p>}
+          {weekly?.task_type_breakdown?.length > 0 && (
+            <div className="flex flex-wrap gap-3 mt-4 justify-center">
+              {weekly.task_type_breakdown.map((t, i) => (
+                <span key={t.type} className="flex items-center gap-1.5 text-xs text-[#575E56]">
+                  <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  {t.type} ({t.count})
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl p-6" data-testid="procrastination-section">
+          <h3 className="font-['Manrope'] text-lg font-semibold text-[#1A1D1A] mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-[#E8B273]" /> Procrastination Analysis
+          </h3>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[#575E56]">Procrastination Rate</span>
+              <span className="font-['Manrope'] font-bold text-[#1A1D1A]">{procrastination?.procrastination_rate || 0}%</span>
+            </div>
+            <div className="w-full h-3 bg-[#E8E5DF] rounded-full overflow-hidden">
+              <div className="h-full bg-[#E8B273] rounded-full transition-all duration-500" style={{ width: `${Math.min(procrastination?.procrastination_rate || 0, 100)}%` }} />
+            </div>
+          </div>
+          {procrastination?.analysis?.patterns?.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <p className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56]">Patterns</p>
+              {procrastination.analysis.patterns.map((p, i) => (
+                <p key={i} className="text-sm text-[#1A1D1A] p-2 bg-[#F2F0EA] rounded-lg font-['Figtree']">{p}</p>
+              ))}
+            </div>
+          )}
+          {procrastination?.analysis?.suggestions?.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <p className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56]">Suggestions</p>
+              {procrastination.analysis.suggestions.map((s, i) => (
+                <p key={i} className="text-sm text-[#8BA38A] p-2 bg-[#8BA38A]/10 rounded-lg font-['Figtree']">{s}</p>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl p-6" data-testid="burnout-section">
+          <h3 className="font-['Manrope'] text-lg font-semibold text-[#1A1D1A] mb-4 flex items-center gap-2">
+            <Activity className="w-5 h-5" style={{ color: burnoutColor(burnout?.risk_level) }} /> Burnout Monitor
+          </h3>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-xl font-['Manrope']"
+              style={{ backgroundColor: burnoutColor(burnout?.risk_level) }}>
+              {(burnout?.risk_level || 'low').toUpperCase().slice(0, 1)}
+            </div>
+            <div>
+              <p className="font-['Manrope'] text-xl font-bold text-[#1A1D1A] capitalize">{burnout?.risk_level || 'Low'} Risk</p>
+              <p className="text-sm text-[#575E56]">Completion rate: {burnout?.completion_rate || 0}%</p>
+            </div>
+          </div>
+          {burnout?.factors?.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs tracking-[0.15em] uppercase font-semibold text-[#575E56]">Contributing Factors</p>
+              {burnout.factors.map((f, i) => (
+                <p key={i} className="text-sm text-[#1A1D1A] p-2 bg-[#F2F0EA] rounded-lg font-['Figtree']">{f}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
