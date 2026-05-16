@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   LayoutDashboard, MessageCircle, ListTodo, Timer, BarChart3,
-  Target, Settings, LogOut, ChevronLeft, ChevronRight, Sun, Moon, CloudMoon
+  Target, Settings, LogOut, ChevronLeft, ChevronRight, Sun, Moon, CloudMoon,
+  ShieldAlert, Calendar
 } from 'lucide-react';
 import AuraLogo from './AuraLogo';
 
@@ -13,8 +14,10 @@ const navItems = [
   { path: '/chat', label: 'AI Advisor', icon: MessageCircle },
   { path: '/tasks', label: 'Tasks', icon: ListTodo },
   { path: '/focus', label: 'Focus Room', icon: Timer },
+  { path: '/calendar', label: 'Calendar', icon: Calendar },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/goals', label: 'Goals', icon: Target },
+  { path: '/distractions', label: 'Distractions', icon: ShieldAlert },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 

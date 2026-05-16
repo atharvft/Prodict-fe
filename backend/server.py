@@ -896,6 +896,104 @@ async def get_quote_of_day():
 async def root():
     return {"message": "AURA API is running", "version": "1.0.0"}
 
+# ─── V3: Distraction Monitor ────────────────────────────────────
+class DistractionLog(BaseModel):
+    category: str  # social_media, entertainment, news, shopping, other
+    duration_min: int
+    app_name: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.post("/distractions")
+async def log_distraction(input_data: DistractionLog, user: dict = Depends(get_current_user)):
+    doc = {
+        "id": str(uuid.uuid4()), "user_id": user["_id"],
+        "category": input_data.category, "duration_min": input_data.duration_min,
+        "app_name": input_data.app_name, "notes": input_data.notes,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.distractions.insert_one({**doc, "_id": ObjectId()})
+    await db.behavior_logs.insert_one({"_id": ObjectId(), "user_id": user["_id"], "action": "distraction_logged", "metadata": {"category": input_data.category, "duration_min": input_data.duration_min}, "created_at": datetime.now(timezone.utc).isoformat()})
+    return doc
+
+@api_router.get("/distractions")
+async def get_distractions(days: int = 7, user: dict = Depends(get_current_user)):
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    logs = await db.distractions.find({"user_id": user["_id"], "created_at": {"$gte": since}}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    total_min = sum(d.get("duration_min", 0) for d in logs)
+    by_category = {}
+    for d in logs:
+        cat = d.get("category", "other")
+        by_category[cat] = by_category.get(cat, 0) + d.get("duration_min", 0)
+    daily = {}
+    for d in logs:
+        day = d.get("created_at", "")[:10]
+        daily[day] = daily.get(day, 0) + d.get("duration_min", 0)
+    return {"logs": logs, "total_minutes": total_min, "by_category": [{"category": k, "minutes": v} for k, v in by_category.items()], "daily_totals": [{"date": k, "minutes": v} for k, v in sorted(daily.items())]}
+
+@api_router.get("/distractions/analysis")
+async def distraction_analysis(user: dict = Depends(get_current_user)):
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    logs = await db.distractions.find({"user_id": user["_id"], "created_at": {"$gte": week_ago}}, {"_id": 0}).to_list(200)
+    if not logs:
+        return {"analysis": "No distraction data yet. Start logging distractions to get AI-powered insights.", "tips": ["Try the Pomodoro technique to stay focused", "Put your phone in another room during deep work"], "total_minutes": 0}
+    total = sum(d.get("duration_min", 0) for d in logs)
+    by_cat = {}
+    for d in logs:
+        cat = d.get("category", "other")
+        by_cat[cat] = by_cat.get(cat, 0) + d.get("duration_min", 0)
+    prompt = f"User had {total} minutes of distractions this week. Breakdown: {json.dumps(by_cat)}. Give 3 specific tips to reduce distractions. Return JSON: {{\"analysis\": string, \"tips\": [string]}}"
+    ai_response = await call_gemini(prompt, "Help me reduce distractions")
+    parsed = parse_json_response(ai_response) if ai_response else None
+    if parsed and isinstance(parsed, dict):
+        return {**parsed, "total_minutes": total}
+    worst = max(by_cat, key=by_cat.get) if by_cat else "general"
+    return {"analysis": f"You spent {total} minutes distracted this week, mostly on {worst}.", "tips": ["Block distracting sites during focus sessions", f"Set a daily limit for {worst}", "Use the Focus Room to build deep work habits"], "total_minutes": total}
+
+# ─── V3: Calendar View ──────────────────────────────────────────
+@api_router.get("/calendar/week")
+async def calendar_week(start_date: Optional[str] = None, user: dict = Depends(get_current_user)):
+    if start_date:
+        try:
+            week_start = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            week_start = datetime.now(timezone.utc)
+    else:
+        today = datetime.now(timezone.utc)
+        week_start = today - timedelta(days=today.weekday())
+    days = []
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        day_str = day.strftime("%Y-%m-%d")
+        day_tasks = await db.tasks.find({"user_id": user["_id"], "status": {"$ne": "deleted"}, "deadline": day_str}, {"_id": 0}).to_list(50)
+        schedule = await db.schedules.find_one({"user_id": user["_id"], "date": day_str}, {"_id": 0})
+        focus = await db.focus_sessions.find({"user_id": user["_id"], "started_at": {"$regex": f"^{day_str}"}}, {"_id": 0}).to_list(20)
+        days.append({"date": day_str, "day_name": day.strftime("%A"), "tasks": day_tasks, "schedule": schedule.get("plan") if schedule else None, "focus_sessions": focus})
+    return {"week_start": week_start.strftime("%Y-%m-%d"), "days": days}
+
+@api_router.get("/calendar/events")
+async def calendar_events(user: dict = Depends(get_current_user)):
+    """Return all tasks with deadlines as calendar events."""
+    tasks = await db.tasks.find({"user_id": user["_id"], "status": {"$ne": "deleted"}, "deadline": {"$ne": None}}, {"_id": 0}).to_list(200)
+    events = []
+    for t in tasks:
+        if t.get("deadline"):
+            events.append({"id": t["id"], "title": t["title"], "date": t["deadline"], "priority": t.get("priority", "medium"), "status": t.get("status", "pending"), "type": t.get("task_type", "work"), "effort": t.get("effort", "1h")})
+    return {"events": events}
+
+# ─── V3: Voice (speech-to-text processed by Gemini) ─────────────
+class VoiceInput(BaseModel):
+    text: str  # Transcribed text from browser Web Speech API
+    context: str = "task"  # task, chat, brain_dump
+
+@api_router.post("/voice/process")
+async def process_voice(input_data: VoiceInput, user: dict = Depends(get_current_user)):
+    if input_data.context == "brain_dump":
+        return await brain_dump(BrainDumpInput(text=input_data.text), user)
+    elif input_data.context == "chat":
+        return await send_chat(ChatInput(message=input_data.text), user)
+    else:
+        return await create_task(TaskCreate(title=input_data.text), user)
+
 # ─── App Setup ───────────────────────────────────────────────────
 app.include_router(api_router)
 
@@ -915,6 +1013,7 @@ async def startup():
     await db.focus_sessions.create_index([("user_id", 1), ("started_at", -1)])
     await db.behavior_logs.create_index([("user_id", 1), ("created_at", -1)])
     await db.schedules.create_index([("user_id", 1), ("date", 1)])
+    await db.distractions.create_index([("user_id", 1), ("created_at", -1)])
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@aura.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
     existing = await db.users.find_one({"email": admin_email})

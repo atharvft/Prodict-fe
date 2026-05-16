@@ -4,7 +4,6 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContaine
 import { BarChart3, Clock, Flame, AlertTriangle, Activity, FileText, Award, Loader2, TrendingUp } from 'lucide-react';
 
 const COLORS = ['#C27A63', '#8BA38A', '#E8B273', '#575E56', '#D46B6B', '#A6634D'];
-const gradeColors = { A: '#8BA38A', B: '#C27A63', C: '#E8B273', D: '#D46B6B' };
 
 export default function Analytics() {
   const [weekly, setWeekly] = useState(null);
@@ -37,7 +36,8 @@ export default function Analytics() {
     finally { setLoadingReport(false); }
   };
 
-  const burnoutColor = (level) => ({ low: '#8BA38A', medium: '#E8B273', high: '#D46B6B' }[level] || '#8BA38A');
+  const burnoutColor = (level) => ({ low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)' }[level] || 'var(--success)');
+  const gradeColors = { A: '#8BA38A', B: '#C27A63', C: '#E8B273', D: '#D46B6B' };
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#C27A63] border-t-transparent rounded-full animate-spin" /></div>;
 

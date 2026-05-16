@@ -94,4 +94,19 @@ export const quoteAPI = {
   today: () => api.get('/quote'),
 };
 
+export const distractionAPI = {
+  log: (data) => api.post('/distractions', data),
+  getAll: (days = 7) => api.get('/distractions', { params: { days } }),
+  analysis: () => api.get('/distractions/analysis'),
+};
+
+export const calendarAPI = {
+  week: (startDate) => api.get('/calendar/week', { params: { start_date: startDate } }),
+  events: () => api.get('/calendar/events'),
+};
+
+export const voiceAPI = {
+  process: (text, context = 'task') => api.post('/voice/process', { text, context }),
+};
+
 export default api;

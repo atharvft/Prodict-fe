@@ -12,6 +12,8 @@ import FocusRoom from './pages/FocusRoom';
 import Analytics from './pages/Analytics';
 import Goals from './pages/Goals';
 import Settings from './pages/Settings';
+import DistractionMonitor from './pages/DistractionMonitor';
+import CalendarView from './pages/CalendarView';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -51,6 +53,8 @@ function AppRoutes() {
       <Route path="/focus" element={<ProtectedRoute><AppLayout><FocusRoom /></AppLayout></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><AppLayout><Analytics /></AppLayout></ProtectedRoute>} />
       <Route path="/goals" element={<ProtectedRoute><AppLayout><Goals /></AppLayout></ProtectedRoute>} />
+      <Route path="/distractions" element={<ProtectedRoute><AppLayout><DistractionMonitor /></AppLayout></ProtectedRoute>} />
+      <Route path="/calendar" element={<ProtectedRoute><AppLayout><CalendarView /></AppLayout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><AppLayout><Settings /></AppLayout></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
