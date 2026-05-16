@@ -2,62 +2,56 @@
 
 ## Architecture
 - **Frontend**: React + Tailwind CSS + Recharts + Framer Motion + Zustand
-- **Backend**: FastAPI (Python) + MongoDB (adapted from PRD's Node.js + PostgreSQL)
+- **Backend**: FastAPI (Python) + MongoDB
 - **AI**: Google Gemini 2.0 Flash via `google.genai` SDK
 - **Auth**: JWT (httpOnly cookies + Bearer token fallback)
+- **Theme**: 3-mode system (Light / Moonlight / Dark) via CSS custom properties
 
-## Core Requirements
-- 8 specialized AI agents (Chat Advisor, Task Intelligence, Prioritization, Procrastination Detection, Planner, Burnout Detection, Nudge, Memory)
-- JWT Authentication
-- AI Brain Dump (free-text → structured tasks)
-- Gemini Chat Advisor
-- Smart Task CRUD with AI auto-fill
-- Dynamic Daily Planner
-- Focus Mode (Pomodoro timer)
-- Anti-Procrastination Engine
-- Analytics Dashboard
+## What's Been Implemented
 
-## What's Been Implemented (2026-05-16)
-### MVP Features - All Complete
+### MVP Features (2026-05-16)
 - [x] JWT Auth (register, login, logout, me, refresh)
 - [x] AI Brain Dump (Gemini parses free-text into structured tasks)
 - [x] Gemini Chat Advisor (conversational AI with history)
 - [x] Smart Task CRUD with AI auto-fill priority/type/effort
-- [x] Dynamic Daily Planner (Gemini generates Pomodoro-style schedules)
-- [x] Focus Mode (Pomodoro timer with progress ring, pause/resume)
+- [x] Dynamic Daily Planner (Gemini generates schedules)
+- [x] Focus Mode (Pomodoro timer with progress ring)
 - [x] Anti-Procrastination Engine (postponement tracking + AI analysis)
 - [x] Analytics Dashboard (bar chart, donut chart, burnout monitor)
 - [x] Goals with AI-generated roadmaps
 - [x] Settings (productive hours, nudge preferences, focus duration)
-- [x] Custom AURA logo updated to user-provided mind/lotus icon (2026-05-16)
+
+### V2 Features (2026-05-16)
+- [x] Graceful error handling with fallbacks for Gemini API
+- [x] Emotional Overwhelm Mode (calming 3-task focus)
+- [x] Weekly Productivity Report (AI narrative + charts + grade)
+- [x] Goal Breakdown (daily tasks from goal roadmap)
+
+### V3 Features (2026-05-16)
+- [x] Theme System: Light / Moonlight / Dark with CSS variables
+- [x] Quote of the Day (rotating motivational quotes)
+- [x] Custom AURA logo (user-provided mind/lotus icon)
+- [x] Browser Distraction Monitor (log, track, charts, AI analysis)
+- [x] Calendar View (weekly grid with tasks, schedules, focus sessions)
+- [x] Voice Assistant (Web Speech API for chat + brain dump + tasks)
+- [x] Theme-aware styling for ALL pages
 
 ### Testing Results
-- Backend: 90% (37/41 passed, 4 failures due to Gemini API rate limits)
-- Frontend: 100% (all pages load and function correctly)
-
-## User Personas
-- Overwhelmed professionals needing AI-guided task prioritization
-- Students managing academic workload with procrastination tendencies
-- Remote workers needing structure and focus sessions
+- Backend: 100% across all iterations (MVP + V2 + V3)
+- Frontend: 100% across all iterations
 
 ## Prioritized Backlog
-### P0 (Critical)
-- [ ] Gemini API error handling with graceful fallbacks
-- [ ] Retry logic for AI calls
+### P1
+- [ ] Gmail Task Extraction
+- [ ] Google Calendar two-way sync (requires OAuth setup)
+- [ ] Real-time nudge notifications via WebSockets
 
-### P1 (High)
-- [ ] Emotional Overwhelm Mode (simplified 3-task view)
-- [ ] Weekly Productivity Report (auto-generated narrative + charts)
-- [ ] Real-time nudge notifications
-
-### P2 (Medium)
-- [ ] Goal Breakdown with daily task suggestions
-- [ ] Personalized recommendations from Memory Agent
-- [ ] Socket.io integration for live updates
+### P2
+- [ ] WhatsApp Bot integration
+- [ ] Chrome extension for distraction auto-tracking
 - [ ] Vector memory (Pinecone) for long-term personalization
 
-### P3 (Low/V3)
-- [ ] Browser Distraction Monitor
-- [ ] Gmail Task Extraction
-- [ ] Google Calendar Sync
-- [ ] Voice Assistant
+### P3
+- [ ] Mobile responsive optimization
+- [ ] Data export option
+- [ ] Multi-language support
