@@ -44,7 +44,7 @@ export default function Signup() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-[#F9F8F6]">
+      <div className="flex-1 flex items-center justify-center p-8" style={{ background: 'var(--bg-primary)' }}>
         <div className="w-full max-w-md animate-fade-in-up">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-[#F2F0EA] flex items-center justify-center overflow-hidden">

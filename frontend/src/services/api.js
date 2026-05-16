@@ -90,4 +90,8 @@ export const nudgeAPI = {
   markDelivered: (id) => api.put(`/nudges/${id}/delivered`),
 };
 
+export const quoteAPI = {
+  today: () => api.get('/quote'),
+};
+
 export default api;

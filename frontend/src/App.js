@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -15,10 +16,10 @@ import Settings from './pages/Settings';
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-[#F9F8F6]" data-testid="loading-screen">
+    <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-primary)' }} data-testid="loading-screen">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-3 border-[#C27A63] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[#575E56] font-['Figtree']">Loading AURA...</p>
+        <div className="w-10 h-10 border-3 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }} />
+        <p className="font-['Figtree']" style={{ color: 'var(--text-secondary)' }}>Loading AURA...</p>
       </div>
     </div>
   );
@@ -28,7 +29,7 @@ function ProtectedRoute({ children }) {
 
 function AppLayout({ children }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F9F8F6]">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <Sidebar />
       <main className="flex-1 overflow-y-auto" data-testid="main-content">
         {children}
@@ -59,9 +60,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

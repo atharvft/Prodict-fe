@@ -849,6 +849,49 @@ async def create_goal_tasks(goal_id: str, user: dict = Depends(get_current_user)
     return {"tasks": created, "count": len(created)}
 
 # ─── Health Check ────────────────────────────────────────────────
+MOTIVATIONAL_QUOTES = [
+    {"quote": "The secret of getting ahead is getting started.", "author": "Mark Twain"},
+    {"quote": "It is not the mountain we conquer, but ourselves.", "author": "Edmund Hillary"},
+    {"quote": "You don't have to be great to start, but you have to start to be great.", "author": "Zig Ziglar"},
+    {"quote": "Action is the foundational key to all success.", "author": "Pablo Picasso"},
+    {"quote": "Productivity is never an accident. It is always the result of a commitment to excellence.", "author": "Paul J. Meyer"},
+    {"quote": "The only way to do great work is to love what you do.", "author": "Steve Jobs"},
+    {"quote": "Small daily improvements are the key to staggering long-term results.", "author": "Robin Sharma"},
+    {"quote": "Focus on being productive instead of busy.", "author": "Tim Ferriss"},
+    {"quote": "Don't watch the clock; do what it does. Keep going.", "author": "Sam Levenson"},
+    {"quote": "You are never too old to set another goal or to dream a new dream.", "author": "C.S. Lewis"},
+    {"quote": "Believe you can and you're halfway there.", "author": "Theodore Roosevelt"},
+    {"quote": "The best time to plant a tree was 20 years ago. The second best time is now.", "author": "Chinese Proverb"},
+    {"quote": "Your limitation—it's only your imagination.", "author": "Unknown"},
+    {"quote": "Push yourself, because no one else is going to do it for you.", "author": "Unknown"},
+    {"quote": "Great things never come from comfort zones.", "author": "Unknown"},
+    {"quote": "Dream it. Wish it. Do it.", "author": "Unknown"},
+    {"quote": "Success doesn't just find you. You have to go out and get it.", "author": "Unknown"},
+    {"quote": "The harder you work for something, the greater you'll feel when you achieve it.", "author": "Unknown"},
+    {"quote": "Don't stop when you're tired. Stop when you're done.", "author": "Unknown"},
+    {"quote": "Wake up with determination. Go to bed with satisfaction.", "author": "Unknown"},
+    {"quote": "Do something today that your future self will thank you for.", "author": "Sean Patrick Flanery"},
+    {"quote": "Little things make big days.", "author": "Unknown"},
+    {"quote": "It's going to be hard, but hard does not mean impossible.", "author": "Unknown"},
+    {"quote": "Don't wait for opportunity. Create it.", "author": "Unknown"},
+    {"quote": "The only limit to our realization of tomorrow is our doubts of today.", "author": "Franklin D. Roosevelt"},
+    {"quote": "Start where you are. Use what you have. Do what you can.", "author": "Arthur Ashe"},
+    {"quote": "Everything you've ever wanted is on the other side of fear.", "author": "George Addair"},
+    {"quote": "Success is not final, failure is not fatal: it is the courage to continue that counts.", "author": "Winston Churchill"},
+    {"quote": "Hardships often prepare ordinary people for an extraordinary destiny.", "author": "C.S. Lewis"},
+    {"quote": "Your time is limited, don't waste it living someone else's life.", "author": "Steve Jobs"},
+    {"quote": "The future depends on what you do today.", "author": "Mahatma Gandhi"},
+]
+
+@api_router.get("/quote")
+async def get_quote_of_day():
+    today = datetime.now(timezone.utc)
+    day_of_year = today.timetuple().tm_yday
+    hour = today.hour
+    # Rotate quotes: different quote per 6-hour window to feel fresh on each login
+    index = (day_of_year * 4 + hour // 6) % len(MOTIVATIONAL_QUOTES)
+    return MOTIVATIONAL_QUOTES[index]
+
 @api_router.get("/")
 async def root():
     return {"message": "AURA API is running", "version": "1.0.0"}
