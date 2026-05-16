@@ -1,0 +1,114 @@
+{
+  "theme": "Light",
+  "archetype": "Organic & Earthy",
+  "design_philosophy": {
+    "core_principles": [
+      "Calm Productivity: Reduce cognitive load for overwhelmed users.",
+      "Organic Structure: Use warm tones to make structured tasks feel achievable, not clinical.",
+      "Frictionless Interactions: Every interaction should feel smooth and reassuring."
+    ],
+    "spacing_and_layout": {
+      "strategy": "Generous Spacing Philosophy with Bento Grid layout for Dashboards.",
+      "containers": "Padding must be generous. p-6 or p-8 inside cards to prevent text collision. Use p-4 for smaller elements.",
+      "alignment": "Left-align paragraphs and dense content for readability. Only center in the Focus Room."
+    }
+  },
+  "colors": {
+    "background": {
+      "primary": "#F9F8F6",
+      "secondary": "#E8E5DF",
+      "tertiary": "#F2F0EA"
+    },
+    "text": {
+      "primary": "#1A1D1A",
+      "secondary": "#575E56",
+      "accent": "#C27A63",
+      "inverse": "#F9F8F6"
+    },
+    "brand": {
+      "primary": "#C27A63",
+      "primary_hover": "#A6634D",
+      "secondary": "#8BA38A",
+      "secondary_hover": "#738C71",
+      "border": "#2D372B1A",
+      "success": "#8BA38A",
+      "warning": "#E8B273",
+      "danger": "#D46B6B"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Manrope, sans-serif",
+      "body": "Figtree, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scales": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-none font-bold",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-tight font-semibold",
+      "h3": "text-xl sm:text-2xl tracking-tight leading-snug font-medium",
+      "h4": "text-lg sm:text-xl tracking-tight font-medium",
+      "body_large": "text-lg leading-relaxed",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm leading-normal",
+      "label": "text-xs tracking-[0.2em] uppercase font-semibold text-[#575E56]"
+    }
+  },
+  "surfaces": {
+    "dashboard_cards": "bg-[#F9F8F6] border border-[#2D372B]/10 rounded-2xl shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300",
+    "glass_header": "backdrop-blur-xl bg-[#F9F8F6]/70 border-b border-[#2D372B]/5 shadow-sm",
+    "inputs": "bg-[#F2F0EA] border border-[#2D372B]/10 rounded-xl focus:bg-[#F9F8F6] focus:border-[#C27A63] focus:ring-2 focus:ring-[#C27A63]/20 transition-all",
+    "buttons": {
+      "primary": "bg-[#C27A63] text-[#F9F8F6] rounded-xl hover:bg-[#A6634D] transition-colors shadow-sm font-medium",
+      "secondary": "bg-[#E8E5DF] text-[#1A1D1A] rounded-xl hover:bg-[#DEDAD2] transition-colors font-medium",
+      "outline": "bg-transparent border border-[#2D372B]/20 text-[#1A1D1A] rounded-xl hover:bg-[#2D372B]/5 transition-colors font-medium"
+    }
+  },
+  "animation_and_motion": {
+    "micro_interactions": "Smooth 200ms transitions on all hover states. Transform -translate-y-1 for interactive cards.",
+    "page_transitions": "Fade-in with slight upward movement (framer-motion).",
+    "focus_ring": "Slow, breathing circular animation for Pomodoro timer."
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "Clean, rounded, and consistent stroke weight (1.5px)."
+    },
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://static.prod-images.emergentagent.com/jobs/f4b546d4-bdf7-4ed7-97de-31eac23af15e/images/bd22df81db9bbdca3a13fdce78c799e5e56f66f79489be5fc69ec71f37a7e3c2.png",
+        "description": "Minimalist 3D abstract composition of smooth clay spheres and terracota arches against a soft bone-white background. Used for Landing/Auth page background.",
+        "usage": "Use as a background cover with an opacity overlay to keep text highly legible."
+      },
+      {
+        "category": "focus_room_bg",
+        "url": "https://static.prod-images.emergentagent.com/jobs/f4b546d4-bdf7-4ed7-97de-31eac23af15e/images/c953d050f8aa1f749cce2df044ec5ee8aeab456f04b1e541082007a97cb1af0c.png",
+        "description": "Close up of a Zen garden sand ripples with a single smooth black river stone. Warm sage tint.",
+        "usage": "Use as full-screen background in the Focus Room view with a dark overlay or vignette for deep focus."
+      }
+    ]
+  },
+  "component_instructions": {
+    "shadcn_ui": [
+      "Use Shadcn components for all interactive elements (Select, Dropdown, Dialog, Tabs).",
+      "Modify default border-radii from standard Shadcn to rounded-xl (12px) or rounded-2xl (16px) for an organic feel.",
+      "Remove heavy default shadows and replace them with subtle ambient shadows."
+    ],
+    "data_testid": [
+      "All interactive elements MUST include data-testid attributes.",
+      "Use kebab-case and role-based naming (e.g., data-testid='login-submit-button', data-testid='start-pomodoro-button')."
+    ],
+    "charts": [
+      "Use Recharts (or Shadcn Chart wrapper) for Analytics.",
+      "Colors must strictly adhere to the organic palette (Terracotta, Sage Green, Warning Yellow, Stone).",
+      "Remove grid lines on charts for a cleaner, calmer look. Keep only minimal axes."
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Do NOT use default Inter font for headings. Setup Manrope and Figtree in Tailwind config via Google Fonts.",
+    "Build the dashboard using CSS Grid with bento-style layouts (col-span strategies).",
+    "Avoid complete transparency for overlays; always use blur (glassmorphism) or solid opacity.",
+    "For the Gemini Chat Advisor, ensure the message bubbles have subtle rounded corners with higher contrast for user messages.",
+    "Make sure all files use .js extension instead of .tsx since this is a JS project setup."
+  ]
+}
