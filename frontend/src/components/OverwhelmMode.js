@@ -24,7 +24,7 @@ export default function OverwhelmMode({ onClose }) {
           </div>
           <h2 className="font-['Manrope'] text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Feeling Overwhelmed?</h2>
           <p className="font-['Figtree'] mb-6 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            That's okay. Let AURA simplify everything for you. We'll narrow your focus to just 3 things that matter most right now.
+            That's okay. Let Prodict AI simplify everything for you. We'll narrow your focus to just 3 things that matter most right now.
           </p>
           <button data-testid="overwhelm-activate-button" onClick={trigger} disabled={loading}
             className="w-full py-3.5 px-6 rounded-xl font-['Figtree'] font-medium shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"

@@ -172,10 +172,10 @@ export default function Dashboard() {
             style={{ background: `linear-gradient(135deg, var(--brand-primary), var(--brand-hover))`, color: 'var(--text-inverse)' }}
             data-testid="chat-advisor-card">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 overflow-hidden" style={{ background: 'rgba(255,255,255,0.2)' }}>
-              <AuraLogo size={32} />
+              <AuraLogo size={32} theme="dark" />
             </div>
             <h3 className="font-['Manrope'] text-xl font-bold mb-2">AI Advisor</h3>
-            <p className="opacity-80 text-sm font-['Figtree']">Ask AURA for help with priorities, decisions, or just vent.</p>
+            <p className="opacity-80 text-sm font-['Figtree']">Ask Prodict AI for help with priorities, decisions, or just vent.</p>
             <div className="mt-4 flex items-center gap-1 text-sm font-medium">Start chatting <ArrowRight className="w-4 h-4" /></div>
           </Link>
 

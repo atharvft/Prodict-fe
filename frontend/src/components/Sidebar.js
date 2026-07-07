@@ -42,7 +42,7 @@ export default function Sidebar() {
           <AuraLogo size={32} />
         </div>
         {!collapsed && (
-          <span className="font-['Manrope'] text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>AURA</span>
+          <span className="font-['Manrope'] text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Prodict AI</span>
         )}
       </div>
 

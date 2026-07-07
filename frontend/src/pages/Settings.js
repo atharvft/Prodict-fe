@@ -51,7 +51,7 @@ export default function Settings() {
     <div className="p-6 lg:p-8 max-w-3xl mx-auto" data-testid="settings-page">
       <div className="mb-8">
         <h1 className="font-['Manrope'] text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Settings</h1>
-        <p className="font-['Figtree'] mt-1" style={{ color: 'var(--text-secondary)' }}>Customize AURA to fit your workflow.</p>
+        <p className="font-['Figtree'] mt-1" style={{ color: 'var(--text-secondary)' }}>Customize Prodict AI to fit your workflow.</p>
       </div>
 
       <div className="space-y-6">

@@ -1,14 +1,16 @@
+import os
 from dotenv import load_dotenv
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+if not os.environ.get("RENDER"):
+    load_dotenv(ROOT_DIR / '.env')
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-import os
+import certifi
 import logging
 import json
 import uuid
@@ -27,19 +29,63 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+mongo_url = os.environ.get("MONGO_URL")
+if not mongo_url:
+    raise RuntimeError("MONGO_URL must be set in the deployment environment.")
 
-# Gemini setup
-gemini_client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY', ''))
+mongo_client_kwargs = {
+    "serverSelectionTimeoutMS": 5000,
+    "connectTimeoutMS": 5000,
+    "socketTimeoutMS": 5000,
+}
+if mongo_url.startswith("mongodb+srv://") or os.environ.get("MONGO_TLS", "").lower() in {"1", "true", "yes"}:
+    mongo_client_kwargs["tls"] = True
+    mongo_client_kwargs["tlsCAFile"] = certifi.where()
+
+client = AsyncIOMotorClient(mongo_url, **mongo_client_kwargs)
+db_name = os.environ.get("DB_NAME")
+if not db_name:
+    raise RuntimeError("DB_NAME must be set in the deployment environment.")
+db = client[db_name]
+
+gemini_api_key = os.environ.get('GEMINI_API_KEY', '').strip()
+if gemini_api_key:
+    gemini_client = genai.Client(api_key=gemini_api_key)
+else:
+    gemini_client = None
+
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest").strip()
+GEMINI_FALLBACK_MODELS = [
+    model.strip()
+    for model in os.environ.get(
+        "GEMINI_FALLBACK_MODELS",
+        "gemini-2.5-flash-lite,gemini-flash-latest,gemini-2.0-flash-lite",
+    ).split(",")
+    if model.strip()
+]
 
 # JWT config
 JWT_SECRET = os.environ.get('JWT_SECRET', 'fallback-secret')
 JWT_ALGORITHM = "HS256"
 
 app = FastAPI()
-api_router = APIRouter(prefix="/api")
+app.state.mongo_ready = False
+app.state.mongo_error_detail = "MongoDB has not been checked yet."
+
+
+def get_mongo_unavailable_detail() -> str:
+    detail = getattr(app.state, "mongo_error_detail", None)
+    if detail:
+        return detail
+    return "MongoDB is unavailable. Check MONGO_URL, Atlas network access, and TLS connectivity."
+
+
+async def require_database(request: Request):
+    if not getattr(request.app.state, "mongo_ready", False):
+        raise HTTPException(status_code=503, detail=get_mongo_unavailable_detail())
+
+
+api_router = APIRouter(prefix="/api", dependencies=[Depends(require_database)])
 
 # ─── Pydantic Models ────────────────────────────────────────────
 class RegisterInput(BaseModel):
@@ -145,7 +191,7 @@ def serialize_user(user: dict) -> dict:
     return u
 
 # ─── Gemini Agent Helpers ────────────────────────────────────────
-CHAT_SYSTEM_PROMPT = """You are AURA, an autonomous AI productivity and life advisor.
+CHAT_SYSTEM_PROMPT = """You are Prodict, an autonomous AI productivity and life advisor.
 Your role is to help users prioritize tasks, manage their energy, reduce overwhelm,
 and make better decisions about their time and career.
 Be empathetic, direct, and always actionable. Avoid generic advice.
@@ -192,18 +238,41 @@ Return a JSON object:
 Be empathetic but honest. Limit to 3 patterns and 3 suggestions."""
 
 async def call_gemini(prompt: str, user_input: str) -> str:
-    try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[prompt + "\n\n" + user_input]
-        )
-        return response.text
-    except Exception as e:
-        error_str = str(e)
-        logger.error(f"Gemini API error: {error_str}")
-        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
-            return None  # Signal rate limit - let callers use fallback
-        return None  # Any Gemini failure returns None for graceful fallback
+    if not gemini_client:
+        return None
+    models = []
+    for model in [GEMINI_MODEL, *GEMINI_FALLBACK_MODELS]:
+        if model and model not in models:
+            models.append(model)
+
+    contents = [prompt + "\n\n" + user_input]
+    last_error = None
+    retryable_markers = ("429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "quota", "high demand")
+
+    for model in models:
+        attempts = 2 if model == GEMINI_MODEL else 1
+        for attempt in range(attempts):
+            try:
+                response = gemini_client.models.generate_content(
+                    model=model,
+                    contents=contents
+                )
+                if model != GEMINI_MODEL:
+                    logger.info(f"Gemini fallback model succeeded: {model}")
+                return response.text
+            except Exception as e:
+                error_str = str(e)
+                last_error = error_str
+                logger.error(f"Gemini API error with model {model}: {error_str}")
+                if not any(marker.lower() in error_str.lower() for marker in retryable_markers):
+                    return None
+                if attempt + 1 < attempts:
+                    continue
+                break
+
+    if last_error:
+        logger.error(f"All Gemini models failed. Last error: {last_error}")
+    return None  # Signal AI unavailable so callers can use graceful fallback
 
 def fallback_parse_tasks(text: str) -> list:
     """Simple regex-based task parser when Gemini is unavailable."""
@@ -883,18 +952,19 @@ MOTIVATIONAL_QUOTES = [
     {"quote": "The future depends on what you do today.", "author": "Mahatma Gandhi"},
 ]
 
-@api_router.get("/quote")
-async def get_quote_of_day():
+@app.get("/api/")
+async def root():
+    return {"message": "AURA API is running", "version": "1.0.0"}
+
+
+@app.get("/api/quote")
+async def get_quote_of_day_api():
     today = datetime.now(timezone.utc)
     day_of_year = today.timetuple().tm_yday
     hour = today.hour
     # Rotate quotes: different quote per 6-hour window to feel fresh on each login
     index = (day_of_year * 4 + hour // 6) % len(MOTIVATIONAL_QUOTES)
     return MOTIVATIONAL_QUOTES[index]
-
-@api_router.get("/")
-async def root():
-    return {"message": "AURA API is running", "version": "1.0.0"}
 
 # ─── V3: Distraction Monitor ────────────────────────────────────
 class DistractionLog(BaseModel):
@@ -1007,30 +1077,44 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    await db.users.create_index("email", unique=True)
-    await db.tasks.create_index([("user_id", 1), ("status", 1)])
-    await db.conversations.create_index([("user_id", 1), ("created_at", -1)])
-    await db.focus_sessions.create_index([("user_id", 1), ("started_at", -1)])
-    await db.behavior_logs.create_index([("user_id", 1), ("created_at", -1)])
-    await db.schedules.create_index([("user_id", 1), ("date", 1)])
-    await db.distractions.create_index([("user_id", 1), ("created_at", -1)])
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@aura.com")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    existing = await db.users.find_one({"email": admin_email})
-    if not existing:
-        await db.users.insert_one({
-            "name": "Admin",
-            "email": admin_email,
-            "password_hash": hash_password(admin_password),
-            "preferences": {"productive_hours_start": "09:00", "productive_hours_end": "17:00", "nudge_enabled": True, "focus_duration": 25, "break_duration": 5},
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
-        logger.info(f"Admin user seeded: {admin_email}")
-    elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
-        logger.info("Admin password updated")
-    logger.info("AURA backend started successfully")
+    try:
+        await client.admin.command("ping")
+        await db.users.create_index("email", unique=True)
+        await db.tasks.create_index([("user_id", 1), ("status", 1)])
+        await db.conversations.create_index([("user_id", 1), ("created_at", -1)])
+        await db.focus_sessions.create_index([("user_id", 1), ("started_at", -1)])
+        await db.behavior_logs.create_index([("user_id", 1), ("created_at", -1)])
+        await db.schedules.create_index([("user_id", 1), ("date", 1)])
+        await db.distractions.create_index([("user_id", 1), ("created_at", -1)])
+
+        admin_email = os.environ.get("ADMIN_EMAIL", "admin@aura.com")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+        existing = await db.users.find_one({"email": admin_email})
+        if not existing:
+            await db.users.insert_one({
+                "name": "Admin",
+                "email": admin_email,
+                "password_hash": hash_password(admin_password),
+                "preferences": {"productive_hours_start": "09:00", "productive_hours_end": "17:00", "nudge_enabled": True, "focus_duration": 25, "break_duration": 5},
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            logger.info(f"Admin user seeded: {admin_email}")
+        elif not verify_password(admin_password, existing["password_hash"]):
+            await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
+            logger.info("Admin password updated")
+
+        app.state.mongo_ready = True
+        app.state.mongo_error_detail = None
+        logger.info("AURA backend started successfully")
+    except Exception as exc:
+        app.state.mongo_ready = False
+        app.state.mongo_error_detail = f"MongoDB is unavailable: {exc}"
+        logger.exception(
+            "MongoDB initialization failed during startup; continuing without DB setup. "
+            "Check MONGO_URL and network access.",
+            exc_info=exc,
+        )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -57,8 +57,7 @@ export default function FocusRoom() {
       <div className="grid lg:grid-cols-5 gap-8">
         <div className="lg:col-span-3">
           <div className="rounded-2xl p-8 relative overflow-hidden" data-testid="timer-section"
-            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)',
-              backgroundImage: isRunning ? `url(https://static.prod-images.emergentagent.com/jobs/f4b546d4-bdf7-4ed7-97de-31eac23af15e/images/c953d050f8aa1f749cce2df044ec5ee8aeab456f04b1e541082007a97cb1af0c.png)` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
             {isRunning && <div className="absolute inset-0" style={{ background: 'color-mix(in srgb, var(--bg-primary) 85%, transparent)', backdropFilter: 'blur(4px)' }} />}
             <div className="relative z-10 flex flex-col items-center">
               <div className="relative w-72 h-72 mb-8">

@@ -64,7 +64,7 @@ export default function Goals() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-['Manrope'] text-3xl font-bold text-[#1A1D1A] tracking-tight">Goals</h1>
-          <p className="text-[#575E56] font-['Figtree'] mt-1">Set goals and let AURA generate AI-powered roadmaps.</p>
+          <p className="text-[#575E56] font-['Figtree'] mt-1">Set goals and let Prodict AI generate AI-powered roadmaps.</p>
         </div>
         <button data-testid="add-goal-toggle" onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#C27A63] text-[#F9F8F6] rounded-xl hover:bg-[#A6634D] transition-colors font-medium text-sm shadow-sm">
@@ -127,7 +127,7 @@ export default function Goals() {
         <div className="text-center py-16">
           <Target className="w-12 h-12 text-[#C27A63]/40 mx-auto mb-4" />
           <h3 className="font-['Manrope'] text-xl font-semibold text-[#1A1D1A] mb-2">No goals yet</h3>
-          <p className="text-[#575E56] font-['Figtree']">Create a goal and AURA will generate a phased roadmap for you.</p>
+          <p className="text-[#575E56] font-['Figtree']">Create a goal and Prodict AI will generate a phased roadmap for you.</p>
         </div>
       ) : (
         <div className="space-y-4">

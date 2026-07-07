@@ -77,7 +77,7 @@ export default function AdvisorChat() {
             <AuraLogo size={36} />
           </div>
           <div>
-            <h2 className="font-['Manrope'] text-lg font-bold" style={{ color: 'var(--text-primary)' }}>AURA Advisor</h2>
+            <h2 className="font-['Manrope'] text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Prodict AI Advisor</h2>
             <p className="text-xs font-['Figtree']" style={{ color: 'var(--text-secondary)' }}>Your AI productivity coach</p>
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function AdvisorChat() {
       <div className="px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
         <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
           <input ref={inputRef} data-testid="chat-input" value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask AURA anything..." disabled={sending}
+            placeholder="Ask Prodict AI anything..." disabled={sending}
             className="flex-1 px-4 py-3 rounded-xl outline-none transition-all font-['Figtree'] disabled:opacity-50 t-input" />
           <button type="button" data-testid="voice-input-chat" onClick={toggleVoice}
             className="px-3 py-3 rounded-xl transition-colors"

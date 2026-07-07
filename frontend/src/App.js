@@ -21,7 +21,7 @@ function ProtectedRoute({ children }) {
     <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-primary)' }} data-testid="loading-screen">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-3 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }} />
-        <p className="font-['Figtree']" style={{ color: 'var(--text-secondary)' }}>Loading AURA...</p>
+        <p className="font-['Figtree']" style={{ color: 'var(--text-secondary)' }}>Loading Prodict AI...</p>
       </div>
     </div>
   );

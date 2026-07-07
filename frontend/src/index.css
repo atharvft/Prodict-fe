@@ -89,6 +89,39 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--brand-primary); border-radius: 3px; }
 
+/* ─── Brand ─────────────────────────────────────── */
+.aura-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aura-logo-mark {
+  border-radius: 10px;
+}
+
+.aura-logo-mark span {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.62em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.aura-logo-wordmark {
+  border-radius: 14px;
+  padding: 0 0.38em;
+}
+
+.aura-logo-wordmark span {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.48em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 /* ─── Animations ───────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
