@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { calendarAPI, taskAPI } from '../services/api';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus } from 'lucide-react';
 
@@ -13,9 +13,7 @@ export default function CalendarView() {
     return d.toISOString().slice(0, 10);
   });
 
-  useEffect(() => { loadWeek(); }, [weekStart]);
-
-  const loadWeek = async () => {
+  const loadWeek = useCallback(async () => {
     setLoading(true);
     try {
       const [w, e] = await Promise.allSettled([calendarAPI.week(weekStart), calendarAPI.events()]);
@@ -23,7 +21,9 @@ export default function CalendarView() {
       if (e.status === 'fulfilled') setEvents(e.value.data.events || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, [weekStart]);
+
+  useEffect(() => { loadWeek(); }, [loadWeek]);
 
   const navigate = (dir) => {
     const d = new Date(weekStart);

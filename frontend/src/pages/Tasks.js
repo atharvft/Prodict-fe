@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { taskAPI, plannerAPI } from '../services/api';
 import { Plus, Brain, Wand2, Trash2, Clock, Tag, AlertTriangle, CheckCircle2, ArrowUpDown, Mic, MicOff } from 'lucide-react';
 
@@ -22,9 +22,7 @@ export default function Tasks() {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
 
-  useEffect(() => { loadTasks(); }, [filter]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       const params = {};
       if (filter.status) params.status = filter.status;
@@ -34,7 +32,9 @@ export default function Tasks() {
       setTasks(data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, [filter]);
+
+  useEffect(() => { loadTasks(); }, [loadTasks]);
 
   const handleBrainDump = async () => {
     if (!brainDumpText.trim()) return;
@@ -116,7 +116,7 @@ export default function Tasks() {
           <h3 className="font-['Manrope'] text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
             <Brain className="w-5 h-5" style={{ color: 'var(--brand-primary)' }} /> Brain Dump
           </h3>
-          <p className="text-sm mb-3 font-['Figtree']" style={{ color: 'var(--text-secondary)' }}>Pour out everything on your mind. AURA will parse it into structured tasks.</p>
+          <p className="text-sm mb-3 font-['Figtree']" style={{ color: 'var(--text-secondary)' }}>Pour out everything on your mind. Prodict AI will parse it into structured tasks.</p>
           <textarea data-testid="brain-dump-textarea" value={brainDumpText} onChange={(e) => setBrainDumpText(e.target.value)} rows={4}
             placeholder="e.g. I need to finish the project report, prepare for tomorrow's meeting, buy groceries, and go for a run..."
             className="w-full px-4 py-3 rounded-xl outline-none transition-all font-['Figtree'] text-sm resize-none t-input" />
